@@ -1,93 +1,67 @@
+// This module defines a trait `Tokenizer` that represents a common interface for all tokenizer
+// types used in the text classification library. A specific implementation of this trait,
+// `BertCasedTokenizer`, uses the BERT cased tokenization strategy provided by the `tokenizers` library.
+
+// This trait represents the common interface for all tokenizer types.
+// The `Send + Sync` bounds are necessary for allowing these operations
+// to work across thread boundaries.
 pub trait Tokenizer: Send + Sync {
-    fn encode(&self, value: &str, special_tokens: bool) -> Vec<usize>;
+    /// Converts a text string into a sequence of tokens.
+    fn encode(&self, value: &str) -> Vec<usize>;
+
+    /// Converts a sequence of tokens back into a text string.
     fn decode(&self, tokens: &[usize]) -> String;
+
+    /// Gets the size of the tokenizer's vocabulary.
     fn vocab_size(&self) -> usize;
+
+    /// Gets the token used for padding sequences to a consistent length.
     fn pad_token(&self) -> usize;
-    fn start_token(&self) -> usize;
-    fn end_token(&self) -> usize;
+
+    /// Gets the string representation of the padding token.
+    /// The default implementation uses `decode` on the padding token.
     fn pad_token_value(&self) -> String {
         self.decode(&[self.pad_token()])
     }
-    fn start_token_value(&self) -> String {
-        self.decode(&[self.start_token()])
-    }
-    fn end_token_value(&self) -> String {
-        self.decode(&[self.end_token()])
-    }
 }
 
-pub struct Gpt2Tokenizer {
+/// Struct represents a specific tokenizer using the BERT cased tokenization strategy.
+pub struct BertCasedTokenizer {
+    // The underlying tokenizer from the `tokenizers` library.
     tokenizer: tokenizers::Tokenizer,
 }
 
-impl Default for Gpt2Tokenizer {
+// Default implementation for creating a new BertCasedTokenizer.
+// This uses a pretrained BERT cased tokenizer model.
+impl Default for BertCasedTokenizer {
     fn default() -> Self {
-        let mut tokenizer = tokenizers::Tokenizer::from_pretrained("gpt2", None).unwrap();
-        tokenizer.add_special_tokens(&[
-            tokenizers::AddedToken::from("[START]", true),
-            tokenizers::AddedToken::from("[END]", true),
-            tokenizers::AddedToken::from("[PAD]", true),
-        ]);
-
-        Self { tokenizer }
+        Self {
+            tokenizer: tokenizers::Tokenizer::from_pretrained("bert-base-cased", None).unwrap(),
+        }
     }
 }
 
-impl Tokenizer for Gpt2Tokenizer {
-    fn encode(&self, value: &str, special_tokens: bool) -> Vec<usize> {
-        let text = match special_tokens {
-            true => "[START]".to_owned() + value + "[END]",
-            false => value.to_string(),
-        };
-        let tokens = self.tokenizer.encode(text, true).unwrap();
+// Implementation of the Tokenizer trait for BertCasedTokenizer.
+impl Tokenizer for BertCasedTokenizer {
+    // Convert a text string into a sequence of tokens using the BERT cased tokenization strategy.
+    fn encode(&self, value: &str) -> Vec<usize> {
+        let tokens = self.tokenizer.encode(value, true).unwrap();
         tokens.get_ids().iter().map(|t| *t as usize).collect()
     }
 
+    /// Converts a sequence of tokens back into a text string.
     fn decode(&self, tokens: &[usize]) -> String {
         let tokens = tokens.iter().map(|t| *t as u32).collect::<Vec<u32>>();
         self.tokenizer.decode(&tokens, false).unwrap()
     }
 
+    /// Gets the size of the BERT cased tokenizer's vocabulary.
     fn vocab_size(&self) -> usize {
         self.tokenizer.get_vocab_size(true)
     }
 
+    /// Gets the token used for padding sequences to a consistent length.
     fn pad_token(&self) -> usize {
         self.tokenizer.token_to_id("[PAD]").unwrap() as usize
-    }
-
-    fn start_token(&self) -> usize {
-        self.tokenizer.token_to_id("[START]").unwrap() as usize
-    }
-
-    fn end_token(&self) -> usize {
-        self.tokenizer.token_to_id("[END]").unwrap() as usize
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_encode_decode() {
-        let tokenizer = Gpt2Tokenizer::default();
-        let text = "A sentence";
-
-        let tokens = tokenizer.encode(text, false);
-        let decoded = tokenizer.decode(&tokens);
-
-        assert_eq!(decoded, text);
-    }
-
-    #[test]
-    fn test_add_start_end_token() {
-        let tokenizer = Gpt2Tokenizer::default();
-        let text = "A sentence";
-
-        let tokens_without = tokenizer.encode(text, false);
-        let tokens_with = tokenizer.encode(text, true);
-
-        assert_eq!(tokens_with.len() - 2, tokens_without.len());
     }
 }
