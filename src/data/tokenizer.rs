@@ -1,10 +1,3 @@
-// This module defines a trait `Tokenizer` that represents a common interface for all tokenizer
-// types used in the text classification library. A specific implementation of this trait,
-// `BertCasedTokenizer`, uses the BERT cased tokenization strategy provided by the `tokenizers` library.
-
-// This trait represents the common interface for all tokenizer types.
-// The `Send + Sync` bounds are necessary for allowing these operations
-// to work across thread boundaries.
 pub trait Tokenizer: Send + Sync {
     /// Converts a text string into a sequence of tokens.
     fn encode(&self, value: &str) -> Vec<usize>;
