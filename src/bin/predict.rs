@@ -11,7 +11,7 @@ type ElemType = burn::tensor::f16;
 pub fn launch<B: ADBackend>(device: B::Device) {
     burn_model_serving::inference::infer::<B, AgNewsDataset>(
         device,
-        "./../models/text-classification-ag-news",
+        "./models/text-classification",
         // Samples from the test dataset, but you are free to test with your own text.
         vec![
             "Jays power up to take finale Contrary to popular belief, the power never really snapped back at SkyDome on Sunday. The lights came on after an hour delay, but it took some extra time for the batting orders to provide some extra wattage.".to_string(),

@@ -22,7 +22,7 @@ pub fn launch<B: ADBackend>(device: B::Device) {
         AgNewsDataset::train(),
         AgNewsDataset::test(),
         config,
-        "./../models/text-classification-ag-news",
+        "./models/text-classification",
     );
 }
 
