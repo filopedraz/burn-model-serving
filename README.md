@@ -26,5 +26,6 @@ curl -X POST -H "Content-Type: application/json" -d '{"texts":["This is the firs
 
 ## Improvements
 
+- [ ] Add Dockerfile and build containers accordingly
 - [ ] Model Storage: decide where to store the models weights and configuration. HF?
 - [ ] Model Lifecycle: decide how to handle model loading and unloading. HF?
