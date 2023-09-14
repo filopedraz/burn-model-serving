@@ -1,10 +1,3 @@
-// This module trains a text classification model using the provided training and testing datasets,
-// as well as the provided configuration. It first initializes a tokenizer and batchers for the datasets,
-// then initializes the model and data loaders for the datasets. The function then initializes
-// an optimizer and a learning rate scheduler, and uses them along with the model and datasets
-// to build a learner, which is used to train the model. The trained model and the configuration are
-// then saved to the specified directory.
-
 use crate::{
     data::{BertCasedTokenizer, TextClassificationBatcher, TextClassificationDataset, Tokenizer},
     model::TextClassificationModelConfig,
