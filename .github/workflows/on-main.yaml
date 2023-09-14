@@ -29,7 +29,7 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: build
-        args: --release serve --target ${{ matrix.target }}
+        args: --bin serve --release --target ${{ matrix.target }}
       
     - name: Upload artifacts
       uses: actions/upload-artifact@v2
