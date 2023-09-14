@@ -6,7 +6,29 @@ on:
       - main
 
 jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+    - name: Create Tag
+      run: |
+        git tag v0.0.${{ github.run_number }}
+        git push origin v0.0.${{ github.run_number }} 
+      
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v0.0.${{ github.run_number }}
+        release_name: Release v0.0.${{ github.run_number }}
+        draft: false
+        prerelease: false
+
   build-and-release:
+    needs: create-release
     permissions: write-all
     runs-on: ${{ matrix.os }}
     strategy:
@@ -35,29 +57,13 @@ jobs:
         command: build
         args: --bin serve --release --target ${{ matrix.target }}
     
-    - name: Create Tag
-      run: |
-        git tag ${{ github.run_number }}
-        git push origin ${{ github.run_number }} 
-      
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.run_number }}
-        release_name: Release ${{ github.run_number }}
-        draft: false
-        prerelease: false
-      
     - name: Upload Release Asset
       id: upload-release-asset
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
         asset_path: target/${{ matrix.target }}/release/serve
         asset_name: serve-${{ matrix.target }}
         asset_content_type: application/octet-stream
