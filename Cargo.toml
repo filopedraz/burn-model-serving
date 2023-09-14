@@ -25,3 +25,7 @@ tokenizers = {version = "0.13.4", default-features = false, features = [
 log = "0.4.19"
 serde = {version = "1.0.164", default-features = false, features = ["derive", "alloc"]} # alloc is for no_std, derive is needed
 derive-new = {version = "0.5.9", default-features = false}
+
+# APIs
+warp = "0.3.5"
+tokio = { version = "1", features = ["full"] }
