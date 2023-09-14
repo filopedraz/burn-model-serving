@@ -34,6 +34,11 @@ jobs:
       with:
         command: build
         args: --bin serve --release --target ${{ matrix.target }}
+    
+    - name: Create Tag
+      run: |
+        git tag ${{ github.run_number }}
+        git push origin ${{ github.run_number }} 
       
     - name: Create Release
       id: create_release
@@ -41,8 +46,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
+        tag_name: ${{ github.run_number }}
+        release_name: Release ${{ github.run_number }}
         draft: false
         prerelease: false
       
