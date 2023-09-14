@@ -1,21 +1,29 @@
-use serde::{Deserialize, Serialize};
-use std::{convert::Infallible, sync::Arc};
-use warp::{body::json, Filter};
-use burn_wgpu::WgpuDevice;
 use burn::{
+    backend::WgpuBackend,
     config::Config,
     data::dataloader::batcher::Batcher,
     module::Module,
     record::{CompactRecorder, Recorder},
-    tensor::backend::Backend, backend::WgpuBackend,
+    tensor::backend::Backend,
 };
-use burn_model_serving::{data::{BertCasedTokenizer, TextClassificationBatcher, Tokenizer, class_name, num_classes}, model::{TextClassificationModelConfig, TextClassificationModel}, training::ExperimentConfig};
+use burn_model_serving::{
+    data::{class_name, num_classes, BertCasedTokenizer, TextClassificationBatcher, Tokenizer},
+    model::{TextClassificationModel, TextClassificationModelConfig},
+    training::ExperimentConfig,
+};
+use burn_wgpu::WgpuDevice;
+use serde::{Deserialize, Serialize};
+use std::{convert::Infallible, sync::Arc};
+use warp::{body::json, Filter};
 
 #[allow(dead_code)]
 type ElemType = f32;
 type ServingBackend = WgpuBackend;
 
-pub fn load_model_and_tokenizer<B: Backend>(artifact_dir: &str, device: B::Device) -> (TextClassificationBatcher<B>, TextClassificationModel<B>) {
+pub fn load_model_and_tokenizer<B: Backend>(
+    artifact_dir: &str,
+    device: B::Device,
+) -> (TextClassificationBatcher<B>, TextClassificationModel<B>) {
     // Load experiment configuration
     let config = ExperimentConfig::load(format!("{artifact_dir}/config.json").as_str())
         .expect("Config file present");
@@ -42,18 +50,22 @@ pub fn load_model_and_tokenizer<B: Backend>(artifact_dir: &str, device: B::Devic
     // Create model using loaded weights
     println!("Creating model ...");
     let model = TextClassificationModelConfig::new(
-            config.transformer,
-            n_classes,
-            tokenizer.vocab_size(),
-            config.max_seq_length,
-        )
-        .init_with::<B>(record) // Initialize model with loaded weights
-        .to_device(&device); // Move model to computation device
+        config.transformer,
+        n_classes,
+        tokenizer.vocab_size(),
+        config.max_seq_length,
+    )
+    .init_with::<B>(record) // Initialize model with loaded weights
+    .to_device(&device); // Move model to computation device
 
-    return (batcher, model);
+    (batcher, model)
 }
 
-async fn handle_prediction<B: Backend>(body: ClassifierRequest, batcher: Arc<TextClassificationBatcher<B>>, model: Arc<TextClassificationModel<B>>) -> Result<impl warp::Reply, Infallible> {
+async fn handle_prediction<B: Backend>(
+    body: ClassifierRequest,
+    batcher: Arc<TextClassificationBatcher<B>>,
+    model: Arc<TextClassificationModel<B>>,
+) -> Result<impl warp::Reply, Infallible> {
     // Run inference on the given text samples
     println!("Running inference ...");
     let item = batcher.batch(body.texts.clone()); // Batch samples using the batcher
@@ -73,16 +85,14 @@ async fn handle_prediction<B: Backend>(body: ClassifierRequest, batcher: Arc<Tex
         classes.push(class);
     }
 
-    let result = ClassifierResponse {
-        classes: classes,
-    };
+    let result = ClassifierResponse { classes };
 
     Ok(warp::reply::json(&result))
 }
 
 #[derive(Deserialize)]
 struct ClassifierRequest {
-    texts: Vec<String>
+    texts: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -92,8 +102,11 @@ struct ClassifierResponse {
 
 #[tokio::main]
 async fn main() {
-    let (batcher, model) = load_model_and_tokenizer::<ServingBackend>("./models/text-classification", WgpuDevice::default());
-    
+    let (batcher, model) = load_model_and_tokenizer::<ServingBackend>(
+        "./models/text-classification",
+        WgpuDevice::default(),
+    );
+
     let batcher = Arc::new(batcher);
     let model = Arc::new(model);
 
@@ -108,12 +121,16 @@ async fn main() {
     warp::serve(classify).run(([127, 0, 0, 1], 3030)).await;
 }
 
-fn with_batcher(batcher: Arc<TextClassificationBatcher<ServingBackend>>) -> impl Filter<Extract = (Arc<TextClassificationBatcher<ServingBackend>>,), Error = Infallible> + Clone {
+fn with_batcher(
+    batcher: Arc<TextClassificationBatcher<ServingBackend>>,
+) -> impl Filter<Extract = (Arc<TextClassificationBatcher<ServingBackend>>,), Error = Infallible> + Clone
+{
     warp::any().map(move || batcher.clone())
 }
 
-fn with_model(model: Arc<TextClassificationModel<ServingBackend>>) -> impl Filter<Extract = (Arc<TextClassificationModel<WgpuBackend>>,), Error = Infallible> + Clone {
+fn with_model(
+    model: Arc<TextClassificationModel<ServingBackend>>,
+) -> impl Filter<Extract = (Arc<TextClassificationModel<WgpuBackend>>,), Error = Infallible> + Clone
+{
     warp::any().map(move || model.clone())
 }
-
-
