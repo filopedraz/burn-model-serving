@@ -74,6 +74,7 @@ async fn handle_prediction<B: Backend>(
     // Print out predictions for each sample
     let mut classes = Vec::new();
     for (i, text) in body.texts.into_iter().enumerate() {
+        #[allow(clippy::single_range_in_vec_init)]
         let prediction = predictions.clone().slice([i..i + 1]); // Get prediction for current sample
         let logits = prediction.to_data(); // Convert prediction tensor to data
         let class_index = prediction.argmax(1).into_data().convert::<i32>().value[0]; // Get class index with the highest value
