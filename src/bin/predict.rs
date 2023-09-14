@@ -22,7 +22,5 @@ pub fn launch<B: ADBackend>(device: B::Device) {
 }
 
 fn main() {
-    launch::<ADBackendDecorator<WgpuBackend<AutoGraphicsApi, ElemType, i32>>>(
-        WgpuDevice::default(),
-    );
+    launch::<ADBackendDecorator<WgpuBackend<AutoGraphicsApi, ElemType, i32>>>(WgpuDevice::default());
 }
